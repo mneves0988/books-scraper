@@ -13,4 +13,4 @@ output/
 
 # Misc
 scraper/ai_enricher
-EOF
+EOF.pytest_cache/
