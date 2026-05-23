@@ -1,0 +1,63 @@
+stages:
+  - lint
+  - test
+  - build
+  - deploy
+
+variables:
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+
+# ── Cache de dependências Python ──────────────────────────────────────────────
+.python_cache: &python_cache
+  cache:
+    key: "$CI_COMMIT_REF_SLUG"
+    paths:
+      - .pip_cache/
+    policy: pull-push
+
+# ── Lint ──────────────────────────────────────────────────────────────────────
+lint:
+  stage: lint
+  image: python:3.12-slim
+  <<: *python_cache
+  before_script:
+    - pip install --cache-dir .pip_cache flake8
+  script:
+    - flake8 scraper/ --max-line-length=120
+  allow_failure: false
+
+# ── Test ──────────────────────────────────────────────────────────────────────
+test:
+  stage: test
+  image: python:3.12-slim
+  <<: *python_cache
+  before_script:
+    - pip install --cache-dir .pip_cache -r requirements.txt pytest
+  script:
+    - pytest tests/ -v
+  allow_failure: false
+
+# ── Build ─────────────────────────────────────────────────────────────────────
+build:
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker build -t $IMAGE_TAG .
+    - docker push $IMAGE_TAG
+  allow_failure: false
+
+# ── Deploy ────────────────────────────────────────────────────────────────────
+deploy:
+  stage: deploy
+  image: python:3.12-slim
+  only:
+    - main
+  script:
+    - echo "Fazendo deploy para AWS ECS..."
+    - echo "aws ecs update-service --cluster books-cluster --service books-scraper --force-new-deployment"
+    - echo "Deploy simulado com sucesso!"
+  allow_failure: false
