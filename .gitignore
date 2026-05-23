@@ -1,0 +1,16 @@
+cat > .gitignore << 'EOF'
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# Output
+output/
+
+# VS Code
+.vscode/
+
+# Misc
+scraper/ai_enricher
+EOF
